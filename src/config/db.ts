@@ -1,6 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import { MongoClient, ServerApiVersion } from "mongodb";
 
-const uri = process.env.MONGODB_URI!;
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  throw new Error("MONGODB_URI is missing in .env");
+}
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -13,13 +20,8 @@ const client = new MongoClient(uri, {
 export const db = client.db(process.env.DATABASE_NAME!);
 
 export async function connectDB() {
-  try {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
+  await client.connect();
+  await client.db("admin").command({ ping: 1 });
 
-    console.log("MongoDB Connected Successfully");
-  } catch (error) {
-    console.error("MongoDB Connection Failed");
-    console.error(error);
-  }
+  console.log("MongoDB Connected Successfully");
 }
