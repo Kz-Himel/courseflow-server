@@ -4,6 +4,29 @@ import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = Router();
 
+// GET: All Course API
+router.get("/", async (_req, res) => {
+  try {
+    const courses = await db
+      .collection("courses")
+      .find()
+      .toArray();
+
+    res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch courses",
+    });
+  }
+});
+
+// POST: Add Course API
 router.post("/", verifyToken, async (req, res) => {
   try {
     const course = {
