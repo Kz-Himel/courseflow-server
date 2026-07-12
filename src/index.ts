@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 
 import { connectDB } from "./config/db.js";
-// import courseRoutes from "./routes/course.routes.js";
+import courseRoutes from "./routes/course.routes.js";
 
 const app = express();
 
@@ -16,7 +16,7 @@ app.get("/", (_req, res) => {
   res.send("CourseFlow Server Running...");
 });
 
-// app.use("/courses",);
+app.use("/courses", courseRoutes);
 
 const PORT = process.env.PORT || 5000;
 
