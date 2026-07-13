@@ -5,6 +5,69 @@ import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = Router();
 
+// GET: Users wishlist items API
+router.get("/", verifyToken, async (req, res) => {
+  try {
+    const userEmail = req.user?.email;
+
+    if (!userEmail) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized! User email not found.",
+      });
+    }
+
+    // MongoDB Aggregate Pipeline 
+    const wishlistWithDetails = await db
+      .collection("wishlists")
+      .aggregate([
+        // 1. Filter users wishlist
+        { $match: { userEmail: userEmail } },
+        
+        // 2. Find users wishlist id and course id
+        {
+          $lookup: {
+            from: "courses",
+            let: { searchId: "$courseId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ["$_id", "$$searchId"] },
+                      { $eq: [{ $toString: "$_id" }, "$$searchId"] } // String/ObjectId mismatch
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "course"
+          }
+        },
+        
+        // 3. 'course' convert array to object
+        { $unwind: "$course" },
+        
+        // 4. add to top the new course
+        { $sort: { addedAt: -1 } }
+      ])
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      count: wishlistWithDetails.length,
+      data: wishlistWithDetails,
+    });
+  } catch (error) {
+    console.error("Backend Wishlist GET Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching wishlist.",
+    });
+  }
+});
+
+// POST: Add to wishlist API
 router.post("/", verifyToken, async (req, res) => {
   try {
     const { courseId } = req.body;
