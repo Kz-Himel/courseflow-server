@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db.js";
 import { verifyToken } from "../middleware/verifyToken.js";
+import { ObjectId } from "mongodb";
 
 const router = Router();
 
@@ -22,6 +23,36 @@ router.get("/", async (_req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch courses",
+    });
+  }
+});
+
+// GET: Single Course
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const course = await db.collection("courses").findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: course,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch course",
     });
   }
 });
