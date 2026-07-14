@@ -74,7 +74,7 @@ router.get("/my-listings", verifyToken, async (req, res) => {
 
 
 // GET: Single Course
-router.get("/:id", verifyToken, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
