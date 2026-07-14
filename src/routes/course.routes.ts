@@ -57,7 +57,7 @@ router.get("/my-listings", verifyToken, async (req, res) => {
     console.log("Current user email:", userEmail);
 
     const allCourses = await db.collection("courses").find().toArray();
-    console.log("All courses creatorEmail values:", allCourses.map(c => c.creatorEmail));
+    // console.log("All courses creatorEmail values:", allCourses.map(c => c.creatorEmail));
 
     const myCourses = await db
       .collection("courses")
