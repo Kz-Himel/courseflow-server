@@ -107,6 +107,57 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
+// PATCH: Update own course
+router.patch("/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user?.email;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course id",
+      });
+    }
+
+    const course = await db.collection("courses").findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    if (course.creatorEmail !== userEmail) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this course",
+      });
+    }
+
+    // creatorEmail, creatorId, createdAt kokhono body theke overwrite hote parbe na
+    const { creatorEmail, creatorId, createdAt, _id, ...updateData } = req.body;
+
+    await db.collection("courses").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...updateData, updatedAt: new Date() } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Course updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update course",
+    });
+  }
+});
 
 // DELETE: Remove own course
 router.delete("/:id", verifyToken, async (req, res) => {
