@@ -27,6 +27,29 @@ router.get("/", async (_req, res) => {
   }
 });
 
+// GET: My Listings — logged in user (creator) er add kora course gula
+router.get("/my-listings", verifyToken, async (req, res) => {
+  try {
+    const userEmail = req.user?.email;
+    console.log("Current user email:", userEmail);
+
+    const allCourses = await db.collection("courses").find().toArray();
+    console.log("All courses creatorEmail values:", allCourses.map(c => c.creatorEmail));
+
+    const myCourses = await db
+      .collection("courses")
+      .find({ creatorEmail: userEmail })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.status(200).json({ success: true, data: myCourses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to fetch your courses" });
+  }
+});
+
+
 // GET: Single Course
 router.get("/:id", verifyToken, async (req, res) => {
   try {
@@ -83,5 +106,8 @@ router.post("/", verifyToken, async (req, res) => {
     });
   }
 });
+
+
+
 
 export default router;
