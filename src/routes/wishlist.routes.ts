@@ -125,4 +125,43 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
+// DELETE: Remove course from wishlist
+router.delete("/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user?.email;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid wishlist ID",
+      });
+    }
+
+    const result = await db.collection("wishlists").deleteOne({
+      _id: new ObjectId(id),
+      userEmail,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Wishlist item not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Course removed from wishlist successfully",
+    });
+  } catch (error) {
+    console.error("Delete Wishlist Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 export default router;
