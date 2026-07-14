@@ -108,6 +108,44 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 
+// DELETE: Remove own course
+router.delete("/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userEmail = req.user?.email;
 
+    const course = await db.collection("courses").findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    if (course.creatorEmail !== userEmail) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this course",
+      });
+    }
+
+    await db.collection("courses").deleteOne({ _id: new ObjectId(id) });
+
+    res.status(200).json({
+      success: true,
+      message: "Course deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete course",
+    });
+  }
+});
 
 export default router;
