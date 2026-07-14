@@ -27,6 +27,29 @@ router.get("/", async (_req, res) => {
   }
 });
 
+// GET: Featured Courses (rating high thakle age dekhabe, na thakle latest 8ta)
+router.get("/featured", async (_req, res) => {
+  try {
+    const featuredCourses = await db
+      .collection("courses")
+      .find()
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(8)
+      .toArray();
+
+    res.status(200).json({
+      success: true,
+      data: featuredCourses,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch featured courses",
+    });
+  }
+});
+
 // GET: My Listings — logged in user (creator) er add kora course gula
 router.get("/my-listings", verifyToken, async (req, res) => {
   try {
