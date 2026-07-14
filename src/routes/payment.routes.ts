@@ -2,12 +2,14 @@ import express, { Request, Response } from "express";
 import { ObjectId } from "mongodb";
 import { db } from "../config/db.js";
 import { verifyToken } from "../middleware/verifyToken.js";
+import Stripe from "stripe";
 
 const router = express.Router();
 
 const coursesCollection = db.collection("courses");
 const paymentsCollection = db.collection("payments");
 const myCoursesCollection = db.collection("myCourses");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 // STEP 1: Payment initiate
 router.post("/initiate", verifyToken, async (req: Request, res: Response) => {
@@ -71,6 +73,14 @@ router.post("/confirm", verifyToken, async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Payment already completed" });
     }
 
+    // jodi stripe payment intent thake, verify koro Stripe theke
+    if (payment.stripePaymentIntentId) {
+      const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+      if (intent.status !== "succeeded") {
+        return res.status(400).json({ success: false, message: "Payment not completed yet" });
+      }
+    }
+
     await paymentsCollection.updateOne(
       { transactionId },
       { $set: { status: "completed" } }
@@ -109,6 +119,66 @@ router.get("/:transactionId", verifyToken, async (req: Request, res: Response) =
         ...payment,
         course,
       },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+
+// Payment intent
+router.post("/create-payment-intent", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { courseId } = req.body;
+    const userEmail = (req as any).user?.email;
+
+    if (!ObjectId.isValid(courseId)) {
+      return res.status(400).json({ success: false, message: "Invalid course id" });
+    }
+
+    const course = await coursesCollection.findOne({ _id: new ObjectId(courseId) });
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    const alreadyEnrolled = await myCoursesCollection.findOne({
+      userEmail,
+      courseId: new ObjectId(courseId),
+    });
+    if (alreadyEnrolled) {
+      return res.status(400).json({ success: false, message: "Already enrolled in this course" });
+    }
+
+    // Stripe amount cents e lage (100 = $1)
+    const amountInCents = Math.round(course.price * 100);
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd",
+      metadata: {
+        courseId: courseId,
+        userEmail: userEmail,
+      },
+    });
+
+    const transactionId = "TXN" + Date.now();
+
+    await paymentsCollection.insertOne({
+      userEmail,
+      courseId: new ObjectId(courseId),
+      amount: course.price,
+      status: "pending",
+      transactionId,
+      stripePaymentIntentId: paymentIntent.id,
+      createdAt: new Date(),
+    });
+
+    res.status(200).json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      transactionId,
+      amount: course.price,
     });
   } catch (error) {
     console.error(error);
