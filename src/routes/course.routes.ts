@@ -6,20 +6,72 @@ import { ObjectId } from "mongodb";
 const router = Router();
 
 // GET: All Course API
-router.get("/", async (_req, res) => {
+// GET: All Course API (with search, filter, sort, pagination)
+router.get("/", async (req, res) => {
   try {
-    const courses = await db
-      .collection("courses")
-      .find()
-      .toArray();
+    const {
+      search = "",
+      category = "",
+      level = "",
+      maxPrice,
+      sort = "newest",
+      page = "1",
+      limit = "12",
+    } = req.query as Record<string, string>;
+
+    const filter: any = {};
+
+    // Search (title / instructorName / shortDescription e case-insensitive match)
+    if (search.trim()) {
+      const regex = new RegExp(search.trim(), "i");
+      filter.$or = [
+        { title: regex },
+        { instructorName: regex },
+        { shortDescription: regex },
+      ];
+    }
+
+    // Category filter
+    if (category) {
+      filter.category = category;
+    }
+
+    // Level filter
+    if (level) {
+      filter.level = level;
+    }
+
+    // Max price filter
+    if (maxPrice !== undefined && maxPrice !== "") {
+      filter.price = { $lte: Number(maxPrice) };
+    }
+
+    // Sort mapping
+    let sortQuery: any = { createdAt: -1 }; // default: newest
+    if (sort === "price_asc") sortQuery = { price: 1 };
+    else if (sort === "price_desc") sortQuery = { price: -1 };
+    else if (sort === "rating") sortQuery = { rating: -1 };
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 12);
+    const skip = (pageNum - 1) * limitNum;
+
+    const collection = db.collection("courses");
+
+    const [courses, total] = await Promise.all([
+      collection.find(filter).sort(sortQuery).skip(skip).limit(limitNum).toArray(),
+      collection.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
       data: courses,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum) || 1,
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch courses",
