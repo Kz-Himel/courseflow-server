@@ -20,6 +20,7 @@
     "jose-cjs": "^6.2.3",
     "mongodb": "^7.0.0",
     "mongoose": "^9.7.4",
+    "serverless-http": "^4.0.0",
     "stripe": "^22.3.1"
   },
   "devDependencies": {
