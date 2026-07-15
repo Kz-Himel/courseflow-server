@@ -133,7 +133,7 @@ router.post("/", verifyToken, async (req, res) => {
 // PATCH: Update own course
 router.patch("/:id", verifyToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userEmail = req.user?.email;
 
     if (!ObjectId.isValid(id)) {
@@ -185,7 +185,7 @@ router.patch("/:id", verifyToken, async (req, res) => {
 // DELETE: Remove own course
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userEmail = req.user?.email;
 
     const course = await db.collection("courses").findOne({

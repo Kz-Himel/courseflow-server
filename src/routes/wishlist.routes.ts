@@ -59,7 +59,7 @@ router.get("/", verifyToken, async (req, res) => {
       data: wishlistWithDetails,
     });
   } catch (error) {
-    console.error("Backend Wishlist GET Error:", error);
+    // console.error("Backend Wishlist GET Error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error while fetching wishlist.",
@@ -128,7 +128,7 @@ router.post("/", verifyToken, async (req, res) => {
 // DELETE: Remove course from wishlist
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userEmail = req.user?.email;
 
     if (!ObjectId.isValid(id)) {
